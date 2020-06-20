@@ -139,24 +139,27 @@ def make_graph_2():
     ax.text(15, 44, 'Predict a dog')
     
     
-def plot_decision_boundary(X, y, classifier):
+def plot_decision_boundary(classifier):
     
     fig, ax = plt.subplots()
     
+    np.random.seed(11)
+    X, y = _gen_data(70, 50)
+    
     classifier.fit(X, y)
     
-    ax.scatter(X[y == 1, 0], X[y == 1, 1], label='Class 1', alpha=0.6)
-    ax.scatter(X[y == 0, 0], X[y == 0, 1], label='Class 0', alpha=0.6)
+    ax.scatter(X[y == 1, 0], X[y == 1, 1], label='Dogs', alpha=0.6)
+    ax.scatter(X[y == 0, 0], X[y == 0, 1], label='Cats', alpha=0.6)
     
     x_space = np.linspace(*ax.get_xlim(), 100)
     y_space = np.linspace(*ax.get_ylim(), 100)
     
     XX, YY = np.meshgrid(x_space, y_space)
     out = classifier.predict(np.vstack([XX.reshape(-1), YY.reshape(-1)]).T)
-
+    
     plt.legend()
-    plt.xlabel('Feature 1')
-    plt.ylabel('Feature 2')
+    plt.xlabel('Weight (kg)')
+    plt.ylabel('Tail length (cm)')
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
@@ -379,6 +382,84 @@ def graded_decision_boundary():
     
     fills1 = [ax.fill_between(x, y + i / 4, y + (i + 1) / 4, alpha= 1.8 / (1 + np.exp(-s * i / 4)) - 0.88, color='#1f77b4', lw=0.01) for i in range(40)]
     fills2 = [ax.fill_between(x, y - i / 4, y - (i + 1) / 4, alpha= 1.8 / (1 + np.exp(-s * i / 4)) - 0.88, color='#ff7f0e', lw=0.01) for i in range(40)]
+    
+    
+def find_best_graded_decision_bondary():
+    
+    fig, ax = plt.subplots()
+    np.random.seed(0)
+    
+    x1 = np.random.normal(2, 2.1, 25)
+    x2 = np.random.normal(-2, 2.1, 25)
+    y1 = np.random.normal(2, 2.1, 25)
+    y2 = np.random.normal(-2, 2.1, 25)
+
+    ax.scatter(x1, y1, alpha=0.6)
+    ax.scatter(x2, y2, alpha=0.6)
+    
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    
+    ax.set_aspect('equal')
+    
+    ax.set_xlim(-5, 5)
+    ax.set_ylim(-5, 5)
+    
+    X, Y = np.meshgrid(np.linspace(-5, 5, 100), np.linspace(-5, 5, 100))
+    X = np.vstack([X.reshape(-1), Y.reshape(-1)]).T
+    
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list("", ["#1f77b4", "#ffffff", "#ff7f0e"])
+
+    def f(a, m, s, x, y):
+        return 1 / (1 + np.exp(- s * d(a, m, x, y)))
+    
+    def d(a, m, x, y):
+        return (m * x - y + a) / (m ** 2 + 1) ** 0.5
+    
+    
+    im = ax.imshow(f(0, -1, 0.1, X[:, 0], X[:, 1]).reshape(100, 100), origin='lower', interpolation='bicubic', extent=[-5, 5, -5, 5], cmap=cmap, vmin=0, vmax=1, alpha=0.7)
+    
+    class Line:
+        
+        def __init__(self):
+            self.a = 0
+            self.b = 45
+            self.s = 1
+        
+        def update(self):
+            
+            m = np.tan(self.b * np.pi / 180)
+                            
+            if self.b > 90 or self.b < -90:
+                im.set_array(f(self.a, m, self.s, X[:, 0], X[:, 1]).reshape(100, 100))
+            else:
+                im.set_array(1 - f(self.a, m, self.s, X[:, 0], X[:, 1]).reshape(100, 100))
+                
+            ax.set_title(f'Average difference = {self.av_loss():.3f}')
+            
+        def av_loss(self):
+            m = np.tan(self.b * np.pi / 180)
+            return (np.abs(f(self.a, m, self.s, x1, y1)).sum() + np.abs(f(self.a, m, self.s, x2, y2) - 1).sum()) / (len(x1) +  len(x2))
+    
+    line = Line()
+    
+    def update_a(a=0):
+        line.a = a
+        line.update()
+
+    def update_b(b=45):
+        line.b = b
+        line.update()
+
+    def update_s(s=1):
+        line.s = s
+        line.update()
+    
+    interact(update_a, a=(-10, 10, 0.001))
+    interact(update_b, b=(-180, 180, 0.01))
+    interact(update_s, s=(0.5, 5, 0.01))
+    
+    plt.tight_layout()
 
     
 def sigmoid():
@@ -404,7 +485,19 @@ def sigmoid():
     interact(update_s, s=(0, 10, 0.01))
     
     plt.tight_layout()
-        
     
-np.random.seed(11)
-X, y = _gen_data(70, 50)
+    
+   
+        
+np.random.seed(0)
+
+x1 = np.random.normal(2, 2.1, 25)
+x2 = np.random.normal(-2, 2.1, 25)
+y1 = np.random.normal(2, 2.1, 25)
+y2 = np.random.normal(-2, 2.1, 25)
+
+X = np.vstack([np.hstack([x1, x2]), np.hstack([y1, y2])]).T
+y = np.concatenate([np.ones(25), np.zeros(25)])
+
+
+
